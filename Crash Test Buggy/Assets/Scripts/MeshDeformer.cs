@@ -15,10 +15,14 @@ public class MeshDeformer : MonoBehaviour
     
     private Rigidbody _buggyRigidBody;
     private CarBehaviour _carScript;
+    private Transform _buggyChassisTransform;
     
     public float springForce = 20f;
     public float damping = 5f;
     public bool isOneTimeChange;
+
+    // Percentage of kinetic energy absorbed by de car
+    private const float EnergyAbsorptionPercentage = 0.7f;
     
     // Start is called before the first frame update
     void Start()
@@ -26,13 +30,13 @@ public class MeshDeformer : MonoBehaviour
         _carScript = gameObject.GetComponent<CarBehaviour>();
         _buggyRigidBody = GetComponent<Rigidbody>();
         
-        //TODO Why are origin vertices at position (0, 0, 0)???
+
         //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
-        //TODO try to get vertices to be in runtime position where they are needed...
         //Mesh position always at origin
         //https://discussions.unity.com/t/mesh-vertices-position-not-correct/32537
         //https://stackoverflow.com/questions/49104794/modify-vertices-at-runtime
         _meshToDeform = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
+        _buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
         
         _originalVertices = _meshToDeform.vertices;
         _displacedVertices = new Vector3[_originalVertices.Length];
@@ -49,17 +53,24 @@ public class MeshDeformer : MonoBehaviour
     {
         if (isOneTimeChange)
         {
+            //TODO add here the check for the radius of the crash energy?
+            //--> Check from ChatGPT...
             for (int i = 0; i < _displacedVertices.Length; i++)
             {
-                UpdateVertex(i);
+                //Update Vertex
+                Vector3 velocity = _vertexVelocities[i];
+                _vertexVelocities[i] = velocity;
+                _displacedVertices[i] += velocity * Time.deltaTime;
             }
             
             _meshToDeform.vertices = _displacedVertices;
             _meshToDeform.RecalculateNormals();
-            // _meshToDeform.RecalculateBounds();
+            _meshToDeform.RecalculateBounds();
             _vertexVelocities = new Vector3[_originalVertices.Length];
             isOneTimeChange = false;
         }
+        
+        RepairBuggy();
     }
 
     private void FixedUpdate()
@@ -67,23 +78,13 @@ public class MeshDeformer : MonoBehaviour
         
     }
 
-    public void AddDeformingForce (Vector3 point, float force) 
-    {
-        for (int i = 0; i < _displacedVertices.Length; i++)
-        {
-            AddForceToVertex(i, point, force);
-        }
-        
-        // Debug.DrawLine(Camera.main.transform.position, point);
-        Debug.DrawLine(point, _displacedVertices[0]);
-    }
-
     private void OnCollisionEnter(Collision other)
     {
-        
         ContactPoint contactPoint = other.GetContact(0);
-        // Vector3 collisionPoint = other.contacts[0].point;
-        Vector3 localCollisionPoint = transform.InverseTransformPoint(contactPoint.point);
+        Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(contactPoint.point);
+
+        // Debug.Log($"Collision world coordinates: {contactPoint.point}");
+        // Debug.Log($"Collision local coordinates: {localCollisionPoint}");
         
         float currentSpeed = _carScript.GetCurrentSpeed();
         float buggyVelocityMS = currentSpeed / 3.6f;
@@ -92,29 +93,67 @@ public class MeshDeformer : MonoBehaviour
         if (currentSpeed > 5.0f)
         {
             isOneTimeChange = true;
-            float impactForce = _buggyRigidBody.mass * (float)Math.Pow(buggyVelocityMS, 2) * 0.5f;
-            AddDeformingForce(localCollisionPoint, impactForce);
+            float buggyKineticEnergy = _buggyRigidBody.mass * Mathf.Pow(buggyVelocityMS, 2) * 0.5f;
+            AddDeformingForce(localCollisionPoint, buggyKineticEnergy * EnergyAbsorptionPercentage);
+            // DeformMesh(localCollisionPoint, buggyKineticEnergy * EnergyAbsorptionPercentage);
         }
+    }
+    
+    public void AddDeformingForce (Vector3 point, float force) 
+    {
+        for (int i = 0; i < _displacedVertices.Length; i++)
+        {
+            AddForceToVertex(i, point, force);
+        }
+        
+        // Debug.DrawLine(Camera.main.transform.position, point);
+        // Debug.DrawLine(transform.position, point);
     }
 
     #region private
-    void AddForceToVertex (int i, Vector3 point, float force)
+    void AddForceToVertex (int i, Vector3 point, float kineticEnergy)
     {
-        Vector3 pointToVertex = _displacedVertices[i] - point;
-        float attenuatedForce = force / (1.0f + pointToVertex.sqrMagnitude);
+        float deformationRadius = 1.0f;
+        float maxDeformation = 0.1f;
         
-        //Ignores mass, evt. adding mass to simulate as exactly as possible in testing...
+        Vector3 pointToVertex = _displacedVertices[i] - point;
+        float attenuatedForce = kineticEnergy / (1.0f + pointToVertex.sqrMagnitude);
+        
         float velocity = attenuatedForce * Time.deltaTime;
-        _vertexVelocities[i] += pointToVertex.normalized * velocity;
+        // float deformation = Mathf.Lerp(maxDeformation * kineticEnergy, 0, )
+        _vertexVelocities[i] += pointToVertex.normalized * (velocity * maxDeformation);
     }
-    
-    private void UpdateVertex (int i) {
-        Vector3 velocity = _vertexVelocities[i];
-        // Vector3 displacement = _displacedVertices[i] - _originalVertices[i];
-        // velocity -= displacement * springForce * Time.deltaTime;
-        // velocity *= 1f - damping * Time.deltaTime;
-        _vertexVelocities[i] = velocity;
-        _displacedVertices[i] += velocity * Time.deltaTime;
+
+    private void DeformMesh(Vector3 localCollisionPoint, float kineticEnergy)
+    {
+        float deformationRadius = 1.0f;
+        float maxDeformation = 0.1f;
+        
+        //Visualize local collision point
+        Debug.DrawLine(transform.position, transform.TransformPoint(localCollisionPoint), Color.red, 2.0f);
+
+        for (int i = 0; i < _displacedVertices.Length; i++)
+        {
+            float distance = Vector3.Distance(_displacedVertices[i], localCollisionPoint);
+
+            if (distance < deformationRadius)
+            {
+                float deformation = Mathf.Lerp(maxDeformation * kineticEnergy, 0, distance / deformationRadius);
+                _displacedVertices[i] -= localCollisionPoint.normalized * deformation;
+            }
+        }
+
+        _meshToDeform.vertices = _displacedVertices;
+        _meshToDeform.RecalculateNormals();
+    }
+
+    private void RepairBuggy()
+    {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            _meshToDeform.vertices = _originalVertices;
+            _meshToDeform.RecalculateNormals();
+        }
     }
     
     #endregion
