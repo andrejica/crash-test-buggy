@@ -354,6 +354,11 @@ public class CarBehaviour : MonoBehaviour
         _engineEventEmitter.Stop();
     }
     
+    public float GetCurrentSpeed()
+    {
+        return _currentSpeedKMH;
+    }
+    
     #region private
     void SetParticleSystems(float engineRpm)
     { 

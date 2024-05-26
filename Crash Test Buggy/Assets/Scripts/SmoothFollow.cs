@@ -24,6 +24,15 @@ public class SmoothFollow : MonoBehaviour
         
         // Calculate the current rotation angles
         float wantedRotationAngle = target.eulerAngles.y;
+        if (Input.GetKey(KeyCode.G))
+        {
+            wantedRotationAngle += 225.0f;
+        }
+        else
+        {
+            wantedRotationAngle += 90.0f;
+        }
+        
         float wantedHeight = target.position.y + height;
         float currentRotationAngle = transform.eulerAngles.y;
         float currentHeight = _transformPosition.y;

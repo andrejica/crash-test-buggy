@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MeshDeformerInput : MonoBehaviour
 {
-    public float force = 10f;
+    public float force = 100f;
     public float forceOffset = 0.1f;
     
     // Start is called before the first frame update
