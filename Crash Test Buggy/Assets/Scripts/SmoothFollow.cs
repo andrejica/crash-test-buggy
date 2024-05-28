@@ -26,7 +26,7 @@ public class SmoothFollow : MonoBehaviour
         float wantedRotationAngle = target.eulerAngles.y;
         if (Input.GetKey(KeyCode.G))
         {
-            wantedRotationAngle += 225.0f;
+            wantedRotationAngle += 269.0f;
         }
         else
         {
