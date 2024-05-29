@@ -36,45 +36,45 @@ public class MeshDeformer : MonoBehaviour
         //Mesh position always at origin
         //https://discussions.unity.com/t/mesh-vertices-position-not-correct/32537
         //https://stackoverflow.com/questions/49104794/modify-vertices-at-runtime
-        Mesh buggyMesh = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
+        // Mesh buggyMesh = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
         _buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
 
-        _originalMesh = buggyMesh;
-        _deformedMesh = Instantiate(_originalMesh);
+        // _originalMesh = buggyMesh;
+        // _deformedMesh = Instantiate(_originalMesh);
         
+        
+        _deformedMesh = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
+        _originalVertices = _deformedMesh.vertices;
+        _displacedVertices = new Vector3[_originalVertices.Length];
+        
+        for (int i = 0; i < _originalVertices.Length; i++)
+        {
+            _displacedVertices[i] = _originalVertices[i];
+        }
 
-
-        // _originalVertices = _meshToDeform.vertices;
-        // _displacedVertices = Instantiate(_originalVertices); //new Vector3[_originalVertices.Length];
-        // for (int i = 0; i < _originalVertices.Length; i++)
-        // {
-        //     _displacedVertices[i] = _originalVertices[i];
-        // }
-
-        // _vertexVelocities = new Vector3[_originalVertices.Length];
+        _vertexVelocities = new Vector3[_originalVertices.Length];
     }
 
     // Update is called once per frame
     void Update()
     {
-        // if (isOneTimeChange)
-        // {
-        //     //TODO add here the check for the radius of the crash energy?
-        //     //--> Check from ChatGPT...
-        //     for (int i = 0; i < _displacedVertices.Length; i++)
-        //     {
-        //         //Update Vertex
-        //         Vector3 velocity = _vertexVelocities[i];
-        //         _vertexVelocities[i] = velocity;
-        //         _displacedVertices[i] += velocity * Time.deltaTime;
-        //     }
-        //     
-        //     _meshToDeform.vertices = _displacedVertices;
-        //     _meshToDeform.RecalculateNormals();
-        //     _meshToDeform.RecalculateBounds();
-        //     _vertexVelocities = new Vector3[_originalVertices.Length];
-        //     isOneTimeChange = false;
-        // }
+        if (isOneTimeChange)
+        {
+            //--> Check from ChatGPT...
+            for (int i = 0; i < _displacedVertices.Length; i++)
+            {
+                // Update Vertex
+                 Vector3 velocity = _vertexVelocities[i];
+                 _displacedVertices[i] += velocity * Time.deltaTime;
+                
+            }
+            
+            _deformedMesh.vertices = _displacedVertices;
+            _deformedMesh.RecalculateNormals();
+            // _meshToDeform.RecalculateBounds();
+            _vertexVelocities = new Vector3[_originalVertices.Length];
+            isOneTimeChange = false;
+        }
         
         RepairBuggy();
     }
@@ -86,6 +86,7 @@ public class MeshDeformer : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
+        //Calculate middle of crash of all contact points...
         ContactPoint contactPoint = other.GetContact(0);
         Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(contactPoint.point);
 
@@ -93,87 +94,47 @@ public class MeshDeformer : MonoBehaviour
         // Debug.Log($"Collision local coordinates: {localCollisionPoint}");
         
         float currentSpeed = _carScript.GetCurrentSpeed();
-        float buggyVelocityMS = currentSpeed / 3.6f;
+        // float buggyVelocityMS = currentSpeed / 3.6f;
+        float relativeVelocity = other.relativeVelocity.magnitude;
         
 
         if (currentSpeed > 5.0f)
         {
             isOneTimeChange = true;
-            float buggyKineticEnergy = _buggyRigidBody.mass * Mathf.Pow(buggyVelocityMS, 2) * 0.5f;
-            AddDeformingForce(localCollisionPoint, buggyKineticEnergy * EnergyAbsorptionPercentage);
-            // DeformMesh(localCollisionPoint, buggyKineticEnergy * EnergyAbsorptionPercentage);
+            float buggyKineticEnergy = 0.5f * _buggyRigidBody.mass * Mathf.Pow(relativeVelocity, 2);
+            float absorbedEnergy = buggyKineticEnergy * EnergyAbsorptionPercentage;
+            // Debug.Log($"Absorbed Energy: {absorbedEnergy}");
+            // Debug.Log($"Relative velocity collision: {relativeVelocity}");
+            AddDeformingForce(localCollisionPoint, absorbedEnergy);
         }
     }
     
-    public void AddDeformingForce (Vector3 point, float force) 
+    public void AddDeformingForce (Vector3 point, float force)
     {
-        //Add force to vertex
-        Vector3[] vertices = _deformedMesh.vertices;
         float deformationRadius = 1.0f;
         float maxDeformation = 0.1f;
         
-        for (int i = 0; i < vertices.Length; i++)
+        //Add force to vertex
+        for (int i = 0; i < _displacedVertices.Length; i++)
         {
-            // Vector3 pointToVertex = _displacedVertices[i] - point;
-            // float attenuatedForce = force / (1.0f + pointToVertex.sqrMagnitude);
-            //
-            // float velocity = attenuatedForce * Time.deltaTime;
+            float distance = Vector3.Distance(_displacedVertices[i], point);
 
-            float distance = Vector3.Distance(vertices[i], point);
-
+            
             if (distance < deformationRadius)
             {
-                //TODO try to use "attenuatedForce" for deformation length...
-                // float attenuatedForce = force / (1f + pointToVertex.sqrMagnitude);
-                float deformation = Mathf.Lerp(maxDeformation * force, 0, distance / deformationRadius);
-                vertices[i] -= point.normalized * (deformation * Time.deltaTime);
+                Vector3 pointToVertex = _displacedVertices[i] - point;
+                float attenuatedForce = maxDeformation * force / (1f + pointToVertex.sqrMagnitude);
+                float velocity = attenuatedForce * Time.deltaTime;
+                _vertexVelocities[i] += pointToVertex.normalized * velocity;
             }
-            
-            _deformedMesh.vertices = vertices;
-            _deformedMesh.RecalculateNormals();
-            // _deformedMesh.RecalculateBounds();
+            else
+            {
+                _vertexVelocities[i] = new Vector3();
+            }
         }
-        
-        // Debug.DrawLine(Camera.main.transform.position, point);
-        // Debug.DrawLine(transform.position, point);
     }
 
     #region private
-    // void AddForceToVertex (int i, Vector3 point, float kineticEnergy)
-    // {
-    //     float deformationRadius = 1.0f;
-    //     float maxDeformation = 0.1f;
-    //     
-    //     Vector3 pointToVertex = _displacedVertices[i] - point;
-    //     float attenuatedForce = kineticEnergy / (1.0f + pointToVertex.sqrMagnitude);
-    //     
-    //     float velocity = attenuatedForce * Time.deltaTime;
-    //     // float deformation = Mathf.Lerp(maxDeformation * kineticEnergy, 0, )
-    //     _vertexVelocities[i] += pointToVertex.normalized * (velocity * maxDeformation);
-    // }
-
-    // private void DeformMesh(Vector3 localCollisionPoint, float kineticEnergy)
-    // {
-    //     float deformationRadius = 1.0f;
-    //     float maxDeformation = 0.1f;
-    //     
-    //     //Visualize local collision point
-    //     Debug.DrawLine(transform.position, transform.TransformPoint(localCollisionPoint), Color.red, 2.0f);
-    //
-    //     for (int i = 0; i < _displacedVertices.Length; i++)
-    //     {
-    //         float distance = Vector3.Distance(_displacedVertices[i], localCollisionPoint);
-    //
-    //         if (distance < deformationRadius)
-    //         {
-    //             float deformation = Mathf.Lerp(maxDeformation * kineticEnergy, 0, distance / deformationRadius);
-    //             _displacedVertices[i] -= localCollisionPoint.normalized * deformation;
-    //         }
-    //     }
-    //
-    //     _meshToDeform.vertices = _displacedVertices;
-    //     _meshToDeform.RecalculateNormals();
-    // }
 
     private void RepairBuggy()
     {

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class SmoothFollow : MonoBehaviour
@@ -9,11 +10,31 @@ public class SmoothFollow : MonoBehaviour
     public float rotationDamping= 1.0f; // How much we damp in rotation
     private Vector3 _transformPosition; // Vector to hold the transform position
     private Vector3 _targetPosition; // Vector to hold the target position
+
+    private bool _isGodMode;
     
     private void Start() {}
-    
+
+    private void Update()
+    {
+        if (_isGodMode)
+        {
+            MoveCamera();
+        }
+    }
+
     // Gets called after all other update methods
     void LateUpdate()
+    {
+        if (!_isGodMode)
+        {
+            FollowBuggy();
+        }
+    }
+
+    #region private
+    
+    private void FollowBuggy()
     {
         // Get the inefficient transform references once in start.
         _transformPosition = transform.position;
@@ -24,7 +45,7 @@ public class SmoothFollow : MonoBehaviour
         
         // Calculate the current rotation angles
         float wantedRotationAngle = target.eulerAngles.y;
-        if (Input.GetKey(KeyCode.G))
+        if (Input.GetKey(KeyCode.T))
         {
             wantedRotationAngle += 269.0f;
         }
@@ -56,5 +77,23 @@ public class SmoothFollow : MonoBehaviour
         
         // Always look at the target
         transform.LookAt(target);
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            _isGodMode = true;
+        }
     }
+
+    private void MoveCamera()
+    {
+        //TODO move camera and spawn buggy on key pressed...
+        // transform.position.
+        
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            _isGodMode = false;
+        }
+    }
+    
+    #endregion
 }
