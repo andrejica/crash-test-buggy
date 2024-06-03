@@ -16,7 +16,7 @@ public class WheelBehaviour : MonoBehaviour
         // _springForce = menuScene1Behaviour.GetSpringForceSaved();
         _springForce = wheelCol.suspensionSpring.spring;
         _springForceIntensity = _springForce / _maxSpringForce;
-        Debug.Log($"Springforce intensity: {_springForceIntensity}");
+        // Debug.Log($"Springforce intensity: {_springForceIntensity}");
         _skidmarkBehaviour = GameObject.Find("Buggy").GetComponent<SkidmarkBehaviour>();
         _skidmarkLast = -1;
     }

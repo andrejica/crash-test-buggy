@@ -31,6 +31,7 @@ public class MeshDeformer : MonoBehaviour
         _carScript = gameObject.GetComponent<CarBehaviour>();
         _buggyRigidBody = GetComponent<Rigidbody>();
         
+        
 
         //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
         //Mesh position always at origin
@@ -60,18 +61,17 @@ public class MeshDeformer : MonoBehaviour
     {
         if (isOneTimeChange)
         {
-            //--> Check from ChatGPT...
             for (int i = 0; i < _displacedVertices.Length; i++)
             {
                 // Update Vertex
                  Vector3 velocity = _vertexVelocities[i];
                  _displacedVertices[i] += velocity * Time.deltaTime;
-                
+
             }
             
             _deformedMesh.vertices = _displacedVertices;
             _deformedMesh.RecalculateNormals();
-            // _meshToDeform.RecalculateBounds();
+            // _deformedMesh.RecalculateBounds();
             _vertexVelocities = new Vector3[_originalVertices.Length];
             isOneTimeChange = false;
         }
@@ -79,57 +79,62 @@ public class MeshDeformer : MonoBehaviour
         RepairBuggy();
     }
 
-    private void FixedUpdate()
-    {
-        
-    }
-
     private void OnCollisionEnter(Collision other)
     {
-        //Calculate middle of crash of all contact points...
+        
+        Vector3 collectionPoint = GetCenterOfContact(other.contacts);
         ContactPoint contactPoint = other.GetContact(0);
-        Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(contactPoint.point);
+        Vector3 point = contactPoint.point + contactPoint.point.normalized * 0.1f;
+        // Debug.DrawRay(collectionPoint, other.relativeVelocity, Color.red, 30.0f);
+        Debug.DrawRay(point, other.relativeVelocity, Color.green, 10.0f);
+        Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(point);
 
         // Debug.Log($"Collision world coordinates: {contactPoint.point}");
         // Debug.Log($"Collision local coordinates: {localCollisionPoint}");
         
         float currentSpeed = _carScript.GetCurrentSpeed();
-        // float buggyVelocityMS = currentSpeed / 3.6f;
-        float relativeVelocity = other.relativeVelocity.magnitude;
+        float relativeVelocityMS = other.relativeVelocity.magnitude;
         
 
         if (currentSpeed > 5.0f)
         {
             isOneTimeChange = true;
-            float buggyKineticEnergy = 0.5f * _buggyRigidBody.mass * Mathf.Pow(relativeVelocity, 2);
+            float buggyKineticEnergy = 0.5f * _buggyRigidBody.mass * Mathf.Pow(relativeVelocityMS, 2);
             float absorbedEnergy = buggyKineticEnergy * EnergyAbsorptionPercentage;
             // Debug.Log($"Absorbed Energy: {absorbedEnergy}");
             // Debug.Log($"Relative velocity collision: {relativeVelocity}");
-            AddDeformingForce(localCollisionPoint, absorbedEnergy);
+            var collisionVelDir = other.relativeVelocity;
+            var orthogonalToWall = Quaternion.FromToRotation(collisionVelDir, -other.transform.forward) * collisionVelDir;
+            Debug.DrawRay(point, orthogonalToWall, Color.magenta, 10.0f);
+            AddDeformingForce(localCollisionPoint, absorbedEnergy, orthogonalToWall.normalized);
+            // DeformingMesh(localCollisionPoint, absorbedEnergy);
         }
     }
     
-    public void AddDeformingForce (Vector3 point, float force)
+    public void AddDeformingForce (Vector3 collisionPoint, float absorbedKineticForce, Vector3 collisionDir)
     {
-        float deformationRadius = 1.0f;
-        float maxDeformation = 0.1f;
+        float deformationRadius = 0.7f;
+        float maxDeformation = 0.05f;
+        // float startDistance = 0.0f;
+        // float distance;
         
+        // Debug.DrawRay(point, _displacedVertices[0], Color.red, 10.0f);
         //Add force to vertex
-        for (int i = 0; i < _displacedVertices.Length; i++)
+        for (int i = 0; i < 1; i++)
         {
-            float distance = Vector3.Distance(_displacedVertices[i], point);
-
-            
-            if (distance < deformationRadius)
+            for (int j = 0; j < _displacedVertices.Length; j++)
             {
-                Vector3 pointToVertex = _displacedVertices[i] - point;
-                float attenuatedForce = maxDeformation * force / (1f + pointToVertex.sqrMagnitude);
-                float velocity = attenuatedForce * Time.deltaTime;
-                _vertexVelocities[i] += pointToVertex.normalized * velocity;
-            }
-            else
-            {
-                _vertexVelocities[i] = new Vector3();
+                float distance = Vector3.Distance(_displacedVertices[j], collisionPoint);
+                
+                if (distance < deformationRadius)
+                {
+                    Vector3 pointToVertex = _displacedVertices[j] - collisionPoint;
+                    //Attenuated force (inverse-square law): Fvel = F / (1 + d^2)
+                    float attenuatedForce = maxDeformation * absorbedKineticForce / (1f + pointToVertex.sqrMagnitude);
+                    float velocity = attenuatedForce * Time.deltaTime;
+                    _vertexVelocities[j] = pointToVertex.normalized * velocity; //* directionalFactor;
+                }
+                
             }
         }
     }
@@ -141,8 +146,39 @@ public class MeshDeformer : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.R))
         {
             _deformedMesh.vertices = _originalVertices;
+            
+            for (int i = 0; i < _originalVertices.Length; i++)
+            {
+                _displacedVertices[i] = _originalVertices[i];
+            }
+            
+            _vertexVelocities = new Vector3[_originalVertices.Length];
+            
             _deformedMesh.RecalculateNormals();
         }
+    }
+
+    private Vector3 GetCenterOfContact(ContactPoint[] contacts)
+    {
+        if (contacts.Length > 1)
+        {
+            float totalX = 0.0f, totalY = 0.0f, totalZ = 0.0f;
+            
+            foreach (var contact in contacts)
+            {
+                totalX += contact.point.x;
+                totalY += contact.point.y;
+                totalZ += contact.point.z;
+            }
+
+            float centerX = totalX / contacts.Length;
+            float centerY = totalY / contacts.Length;
+            float centerZ = totalZ / contacts.Length;
+
+            return new Vector3(centerX, centerY, centerZ);
+        }
+        
+        return contacts[0].point;
     }
     
     #endregion
