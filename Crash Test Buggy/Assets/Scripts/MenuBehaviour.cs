@@ -28,7 +28,7 @@ public class MenuBehaviour : MonoBehaviour
     
     //Load Skin on script directly
     public Material bfhSkin;
-    public Material starndardSkin;
+    public Material standardSkin;
     
     public Slider sliColorHue;
     public Slider sliColorSaturation;
@@ -50,7 +50,7 @@ public class MenuBehaviour : MonoBehaviour
         
         //Set Material for buggy before SetAll()
         _prefs.bfhSkin = bfhSkin;
-        _prefs.starndardSkin = starndardSkin;
+        _prefs.standardSkin = standardSkin;
         
         _prefs.SetAll(ref wheelColliderFL, ref wheelColliderFR, ref wheelColliderRL, ref wheelColliderRR, ref buggy);
         sliSuspDistance.value = _prefs.suspensionDistance;
@@ -198,7 +198,7 @@ public class MenuBehaviour : MonoBehaviour
     public void OnBtnStartClick()
     {
         _prefs.Save();
-        SceneManager.LoadScene("Scene1");
+        SceneManager.LoadScene("SceneCrashTest");
     }
     
     void OnApplicationQuit() { _prefs.Save(); }

@@ -21,11 +21,15 @@ public class Prefs
     
     public string selectedSkin;
     public Material bfhSkin;
-    public Material starndardSkin;
+    public Material standardSkin;
 
     public float buggyHue;
     public float buggySaturation;
     public float buggyValue;
+
+    public float deformRadius;
+    public float maxDeform;
+    public bool isEllipticDeform;
     
     public void Load()
     { 
@@ -48,6 +52,10 @@ public class Prefs
         buggyHue = PlayerPrefs.GetFloat("buggyHue", 0f);
         buggySaturation = PlayerPrefs.GetFloat("buggySaturation", 0f);
         buggyValue = PlayerPrefs.GetFloat("buggyValue", 1.0f);
+
+        deformRadius = PlayerPrefs.GetFloat("deformRadius", 1.0f);
+        maxDeform = PlayerPrefs.GetFloat("maxDeform", 0.1f);
+        isEllipticDeform = PlayerPrefs.GetInt("isEllipticDeform", 0) != 0;
     }
     
     public void Save()
@@ -71,6 +79,10 @@ public class Prefs
         PlayerPrefs.SetFloat("buggyHue", buggyHue);
         PlayerPrefs.SetFloat("buggySaturation", buggySaturation);
         PlayerPrefs.SetFloat("buggyValue", buggyValue);
+        
+        PlayerPrefs.SetFloat("deformRadius", deformRadius);
+        PlayerPrefs.SetFloat("maxDeform", maxDeform);
+        PlayerPrefs.SetInt("isEllipticDeform", isEllipticDeform ? 1 : 0);
     }
     
     public void SetAll(
@@ -97,6 +109,10 @@ public class Prefs
         SetBuggySkin(ref buggy);
         
         SetBuggyColorHSV(ref buggy);
+        
+        SetBuggyDeformRadius(ref buggy);
+        SetBuggyMaxDeform(ref buggy);
+        SetBuggyEllipticDeformation(ref buggy);
     }
 
     public void SetWheelColliderSuspension(
@@ -228,7 +244,7 @@ public class Prefs
                 buggyRenderer.material = bfhSkin;
                 break;
             case "standardSkin":
-                buggyRenderer.material = starndardSkin;
+                buggyRenderer.material = standardSkin;
                 break;
         }
 
@@ -240,5 +256,23 @@ public class Prefs
         Renderer buggyRenderer = buggyGameObject.GetComponent<Renderer>();
 
         buggyRenderer.material.color = Color.HSVToRGB(buggyHue, buggySaturation, buggyValue);
+    }
+    
+    public void SetBuggyDeformRadius(ref GameObject buggy)
+    {
+        MeshDeformer meshDeformerScript = buggy.GetComponent<MeshDeformer>();
+        meshDeformerScript.deformationRadius = deformRadius;
+    }
+    
+    public void SetBuggyMaxDeform(ref GameObject buggy)
+    {
+        MeshDeformer meshDeformerScript = buggy.GetComponent<MeshDeformer>();
+        meshDeformerScript.maxDeformation = maxDeform;
+    }
+    
+    public void SetBuggyEllipticDeformation(ref GameObject buggy)
+    {
+        MeshDeformer meshDeformerScript = buggy.GetComponent<MeshDeformer>();
+        meshDeformerScript.isEllipticDeformation = isEllipticDeform;
     }
 }

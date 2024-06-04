@@ -11075,7 +11075,7 @@ MonoBehaviour:
   tglFrontLampsVisible: {fileID: 1884697683}
   tglBackSeatVisible: {fileID: 364749010}
   bfhSkin: {fileID: 2100000, guid: 686062ea3dcd89e49ac5a0b8a3e2d9e0, type: 2}
-  starndardSkin: {fileID: 2100000, guid: 0e4b0a9a4c460c749bfcbdb2af31bb16, type: 2}
+  standardSkin: {fileID: 2100000, guid: 0e4b0a9a4c460c749bfcbdb2af31bb16, type: 2}
   sliColorHue: {fileID: 1421681497}
   sliColorSaturation: {fileID: 517294385}
   sliColorValue: {fileID: 843925217}

@@ -49,6 +49,10 @@ public class SmoothFollow : MonoBehaviour
         {
             wantedRotationAngle += 269.0f;
         }
+        else if (Input.GetKey(KeyCode.F))
+        {
+            wantedRotationAngle += 179.0f;
+        }
         else
         {
             wantedRotationAngle += 90.0f;
