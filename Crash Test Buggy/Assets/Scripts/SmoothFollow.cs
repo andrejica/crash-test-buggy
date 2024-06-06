@@ -17,10 +17,10 @@ public class SmoothFollow : MonoBehaviour
 
     private void Update()
     {
-        if (_isGodMode)
-        {
-            MoveCamera();
-        }
+        // if (_isGodMode)
+        // {
+        //     MoveCamera();
+        // }
     }
 
     // Gets called after all other update methods
@@ -82,10 +82,10 @@ public class SmoothFollow : MonoBehaviour
         // Always look at the target
         transform.LookAt(target);
 
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            _isGodMode = true;
-        }
+        // if (Input.GetKeyDown(KeyCode.G))
+        // {
+        //     _isGodMode = true;
+        // }
     }
 
     private void MoveCamera()

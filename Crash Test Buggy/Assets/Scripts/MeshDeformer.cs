@@ -13,7 +13,7 @@ public class MeshDeformer : MonoBehaviour
     
     private Rigidbody _buggyRigidBody;
     private CarBehaviour _carScript;
-    private Transform _buggyChassisTransform, _frontChassisFrameTransform;
+    public Transform buggyChassisTransform, frontChassisFrameTransform;
     
     public bool isOneTimeChange;
     public bool isFrontFrameChange;
@@ -32,8 +32,8 @@ public class MeshDeformer : MonoBehaviour
     {
         _carScript = gameObject.GetComponent<CarBehaviour>();
         _buggyRigidBody = GetComponent<Rigidbody>();
-        _buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
-        _frontChassisFrameTransform = GameObject.Find("FrontChassisFrame").GetComponent<Transform>();
+        buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
+        frontChassisFrameTransform = GameObject.Find("FrontChassisFrame").GetComponent<Transform>();
         
         //Mesh position always at origin
         //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
@@ -68,6 +68,11 @@ public class MeshDeformer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!buggyChassisTransform)
+        {
+            buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
+        }
+        
         if (isOneTimeChange)
         {
             for (int i = 0; i < _displacedVertices.Length; i++)
@@ -110,7 +115,7 @@ public class MeshDeformer : MonoBehaviour
         Vector3 contactCenterPoint = GetCenterOfVectors(contactPoints);
         //Place the point a bit further away from initial point
         Vector3 collisionPoint = contactCenterPoint + contactCenterPoint.normalized * ForceOffset;
-        Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(collisionPoint);
+        Vector3 localCollisionPoint = buggyChassisTransform.InverseTransformPoint(collisionPoint);
         
         float currentSpeed = _carScript.GetCurrentSpeed();
         float relativeVelocityMS = other.relativeVelocity.magnitude;
@@ -171,12 +176,6 @@ public class MeshDeformer : MonoBehaviour
         }
         
         DetachCarObjects(velocityInRadius.ToArray());
-        
-        // if (velocity > DeformationThreshold)
-        // {
-            // isFrontFrameChange = true;
-            // DetachCarObjects();
-        // }
     }
 
     /// <summary>
@@ -189,6 +188,7 @@ public class MeshDeformer : MonoBehaviour
     /// <param name="collisionDir"></param>
     private void AddEllipticDeformingForce(Vector3 collisionPoint, float absorbedKineticForce, Vector3 collisionDir)
     {
+        var velocityInRadius = new List<Vector3>();
         //Add force to vertex
         for (int i = 0; i < _displacedVertices.Length; i++)
         {
@@ -206,9 +206,18 @@ public class MeshDeformer : MonoBehaviour
                 // Change formula for force as acceleration (ignore Mass -> Mass = 1): a = F / m
                 // Change in Velocity: Delta-v = a * Delta-t --> Delta-v = F * Delta-t
                 float velocity = attenuatedForce * Time.deltaTime;
-                _vertexVelocities[i] = pointToVertex.normalized * velocity * directionalFactor;
+                Vector3 effectiveVelocity = pointToVertex.normalized * velocity * directionalFactor;
+                _vertexVelocities[i] = effectiveVelocity;
+                velocityInRadius.Add(effectiveVelocity);
             }
         }
+        
+        DetachCarObjects(velocityInRadius.ToArray());
+    }
+
+    public void SetBuggyChassisTransform(Transform chassisTransform)
+    {
+        buggyChassisTransform = chassisTransform;
     }
 
     #region private
@@ -393,7 +402,7 @@ public class MeshDeformer : MonoBehaviour
     {
         // var testPoint = transformFrame.InverseTransformPoint(transformFrame.localPosition);
         // var testPoint2 = _frontChassisFrameTransform.localPosition;
-        Vector3 directionOne = (_frontChassisFrameTransform.right + -_frontChassisFrameTransform.up).normalized;
+        Vector3 directionOne = (frontChassisFrameTransform.right + -frontChassisFrameTransform.up).normalized;
         var forceDirection = localFrontFramePoint * force;
         // Vector3 directionTwo = (-transformFrame.right + transformFrame.forward).normalized;
         
