@@ -327,7 +327,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2392664175218393341
 Transform:
   m_ObjectHideFlags: 0
@@ -5365,7 +5365,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5572386570276199216
 Transform:
   m_ObjectHideFlags: 0
@@ -15580,7 +15580,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &9027080720264845802
 Transform:
   m_ObjectHideFlags: 0
@@ -15624,13 +15624,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5707421808820092073}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0741882, y: -0, z: -0, w: 0.9972443}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.1041393, y: -0.3127476, z: 0.4979992}
   m_LocalScale: {x: 1.31, y: 0.5911894, z: 3.6813035}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4449842896148552955}
-  m_LocalEulerAnglesHint: {x: 8.509, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1333538956284323024
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -15700,8 +15700,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.8958677, y: 0.4876783, z: 0.3392768}
-  m_Center: {x: -0.0019280966, y: 0.06814617, z: -0.006070851}
+  m_Size: {x: 0.82003784, y: 0.85185647, z: 0.32727957}
+  m_Center: {x: 0.0022829035, y: -0.06725369, z: -0.012069618}
 --- !u!1 &6210079232891973846
 GameObject:
   m_ObjectHideFlags: 0
@@ -16099,7 +16099,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7410127764027832956
 Transform:
   m_ObjectHideFlags: 0
@@ -30896,6 +30896,42 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 2053f18c44a919748963b84c8953ec05, type: 2}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.89730835
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.42173445
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.7658539
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.70710677
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071069
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.000005957435
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.0000059569343
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 3948799767036138012, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0.001
+      objectReference: {fileID: 0}
     - target: {fileID: 7849714200538148067, guid: 45a72fbc10aaf65459cc0affc5b4c1b6, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -31023,9 +31059,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c4ba980278a52d4b964d13b37cc496d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  springForce: 20
-  damping: 5
   isOneTimeChange: 0
+  isFrontFrameChange: 0
+  deformationRadius: 1
+  maxDeformation: 0.1
+  isEllipticDeformation: 0
 --- !u!64 &5680845734545766098
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -31220,6 +31258,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c4ba980278a52d4b964d13b37cc496d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  springForce: 20
-  damping: 5
   isOneTimeChange: 0
+  isFrontFrameChange: 0
+  deformationRadius: 1
+  maxDeformation: 0.1
+  isEllipticDeformation: 0

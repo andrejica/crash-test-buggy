@@ -36,6 +36,9 @@ public class MenuScene1Behaviour : MonoBehaviour
         _prefs.standardSkin = standardSkin;
         
         _prefs.SetAll(ref wheelColliderFL, ref wheelColliderFR, ref wheelColliderRL, ref wheelColliderRR, ref buggy);
+        sliDeformRadius.value = _prefs.deformRadius;
+        sliMaxDeform.value = _prefs.maxDeform;
+        tglEllipticDeform.isOn = _prefs.isEllipticDeform;
     }
     
     public void OnSliderChangedDeformRadius(float deformRadius)

@@ -1,28 +1,27 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 //https://catlikecoding.com/unity/tutorials/mesh-deformation/
 //Tipp: Could be used ANY Mesh object to use for deformation
 [RequireComponent(typeof(MeshFilter))]
 public class MeshDeformer : MonoBehaviour
 {
-    private Mesh _deformedMesh;
+    private Mesh _deformedMesh, _deformedFrontFrameMesh;
     private Vector3[] _originalVertices, _displacedVertices, _vertexVelocities;
+    private Vector3[] _originalFrameVertices, _displacedFrameVertices, _vertexFrameVelocities;
     
     private Rigidbody _buggyRigidBody;
     private CarBehaviour _carScript;
-    private Transform _buggyChassisTransform;
+    private Transform _buggyChassisTransform, _frontChassisFrameTransform;
     
     public bool isOneTimeChange;
+    public bool isFrontFrameChange;
     
     // Percentage of kinetic energy absorbed by de car
     private const float EnergyAbsorptionPercentage = 0.7f;
     private const float ForceOffset = 0.1f;
-    private const float DeformationThreshold = 0.5f;
+    // private const float DeformationThreshold = 10.0f;
     
     public float deformationRadius = 1.0f;
     public float maxDeformation = 0.1f;
@@ -33,12 +32,14 @@ public class MeshDeformer : MonoBehaviour
     {
         _carScript = gameObject.GetComponent<CarBehaviour>();
         _buggyRigidBody = GetComponent<Rigidbody>();
+        _buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
+        _frontChassisFrameTransform = GameObject.Find("FrontChassisFrame").GetComponent<Transform>();
         
-        //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
         //Mesh position always at origin
+        //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
         //https://discussions.unity.com/t/mesh-vertices-position-not-correct/32537
         //https://stackoverflow.com/questions/49104794/modify-vertices-at-runtime
-        _buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
+        //Get Mesh of buggy chassis game object
         _deformedMesh = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
         _originalVertices = _deformedMesh.vertices;
         _displacedVertices = new Vector3[_originalVertices.Length];
@@ -47,8 +48,21 @@ public class MeshDeformer : MonoBehaviour
         {
             _displacedVertices[i] = _originalVertices[i];
         }
-
+        
         _vertexVelocities = new Vector3[_originalVertices.Length];
+        
+        //Get Mesh of front chassis frame game object
+        _deformedFrontFrameMesh = GameObject.Find("FrontChassisFrame").GetComponent<MeshFilter>().mesh;
+        _originalFrameVertices = _deformedFrontFrameMesh.vertices;
+        _displacedFrameVertices = new Vector3[_originalFrameVertices.Length];
+        
+        for (int i = 0; i < _originalFrameVertices.Length; i++)
+        {
+            _displacedFrameVertices[i] = _originalFrameVertices[i];
+        }
+
+        _vertexFrameVelocities = new Vector3[_originalFrameVertices.Length];
+
     }
 
     // Update is called once per frame
@@ -61,23 +75,39 @@ public class MeshDeformer : MonoBehaviour
                 // Update Vertex
                  Vector3 velocity = _vertexVelocities[i];
                  _displacedVertices[i] += velocity * Time.deltaTime;
-
             }
             
             _deformedMesh.vertices = _displacedVertices;
             _deformedMesh.RecalculateNormals();
             _vertexVelocities = new Vector3[_originalVertices.Length];
+
+            if (isFrontFrameChange)
+            {
+                for (int i = 0; i < _displacedFrameVertices.Length; i++)
+                {
+                    // Update Vertex
+                    Vector3 velocity = _vertexFrameVelocities[i];
+                    _displacedFrameVertices[i] += velocity * Time.deltaTime;
+                }
+                
+                Debug.DrawRay(_originalFrameVertices[0], _vertexFrameVelocities[0], Color.red, 15.0f);
+                _deformedFrontFrameMesh.vertices = _displacedFrameVertices;
+                _deformedFrontFrameMesh.RecalculateNormals();
+                _vertexFrameVelocities = new Vector3[_originalFrameVertices.Length];
+                isFrontFrameChange = false;
+            }
+            
             isOneTimeChange = false;
         }
         
-        RepairBuggy();
+        RepairBuggyChassis();
         ResetDistance();
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        
-        Vector3 contactCenterPoint = GetCenterOfContact(other.contacts);
+        var contactPoints = other.contacts.Select(cPoint => cPoint.point).ToArray();
+        Vector3 contactCenterPoint = GetCenterOfVectors(contactPoints);
         //Place the point a bit further away from initial point
         Vector3 collisionPoint = contactCenterPoint + contactCenterPoint.normalized * ForceOffset;
         Vector3 localCollisionPoint = _buggyChassisTransform.InverseTransformPoint(collisionPoint);
@@ -114,12 +144,13 @@ public class MeshDeformer : MonoBehaviour
     /// <summary>
     /// Add deforming force of a given mesh in a spherical form from given collision point and direction force.
     /// Save calculated velocity in variable "_vertexVelocity" for later use.
-    /// Altered version of this tutorial: altered version of this tutorial: https://catlikecoding.com/unity/tutorials/mesh-deformation/
+    /// Altered version of this tutorial: https://catlikecoding.com/unity/tutorials/mesh-deformation/
     /// </summary>
     /// <param name="collisionPoint"></param>
     /// <param name="absorbedKineticForce"></param>
     private void AddDeformingForce (Vector3 collisionPoint, float absorbedKineticForce)
     {
+        var velocityInRadius = new List<Vector3>();
         //Add force to vertex
         for (int i = 0; i < _displacedVertices.Length; i++)
         {
@@ -135,14 +166,17 @@ public class MeshDeformer : MonoBehaviour
                 float velocity = attenuatedForce * Time.deltaTime;
                 Vector3 effectiveVelocity = pointToVertex.normalized * velocity;
                 _vertexVelocities[i] = effectiveVelocity;
-
-                if (velocity > DeformationThreshold)
-                {
-                    DetachCarObjects(effectiveVelocity);
-                }
+                velocityInRadius.Add(effectiveVelocity);
             }
-            
         }
+        
+        DetachCarObjects(velocityInRadius.ToArray());
+        
+        // if (velocity > DeformationThreshold)
+        // {
+            // isFrontFrameChange = true;
+            // DetachCarObjects();
+        // }
     }
 
     /// <summary>
@@ -182,7 +216,7 @@ public class MeshDeformer : MonoBehaviour
     /// <summary>
     /// Restore buggy mesh to original form and reset other variables for calculation.
     /// </summary>
-    private void RepairBuggy()
+    private void RepairBuggyChassis()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
@@ -217,45 +251,50 @@ public class MeshDeformer : MonoBehaviour
     /// <summary>
     /// Calculate of given contact vector points the center if there is more than one point
     /// </summary>
-    /// <param name="contacts"></param>
+    /// <param name="vectors"></param>
     /// <returns>
     /// Calculated average Vector3 of all points. If only one point return same point.
-    /// 
     /// </returns>
-    private Vector3 GetCenterOfContact(ContactPoint[] contacts)
+    private Vector3 GetCenterOfVectors(Vector3[] vectors)
     {
-        if (contacts.Length < 1) { return new Vector3(); }
+        if (vectors.Length < 1) { return new Vector3(); }
         
-        if (contacts.Length > 1)
+        if (vectors.Length > 1)
         {
             float totalX = 0.0f, totalY = 0.0f, totalZ = 0.0f;
             
-            foreach (var contact in contacts)
+            foreach (var vec in vectors)
             {
-                totalX += contact.point.x;
-                totalY += contact.point.y;
-                totalZ += contact.point.z;
+                totalX += vec.x;
+                totalY += vec.y;
+                totalZ += vec.z;
             }
 
-            float centerX = totalX / contacts.Length;
-            float centerY = totalY / contacts.Length;
-            float centerZ = totalZ / contacts.Length;
+            float centerX = totalX / vectors.Length;
+            float centerY = totalY / vectors.Length;
+            float centerZ = totalZ / vectors.Length;
 
             return new Vector3(centerX, centerY, centerZ);
         }
         
-        return contacts[0].point;
+        return vectors[0];
     }
-
-    //TODO see if other parts can be checked and detached...
-    private void DetachCarObjects(Vector3 effectiveVelocity)
+    
+    private void DetachCarObjects(Vector3[] velocities)
     {
-        if (effectiveVelocity.magnitude > 0.5f)
+        isFrontFrameChange = true;
+        Vector3 averageVertexVelocity = GetCenterOfVectors(velocities);
+        float velocity = averageVertexVelocity.magnitude;
+        
+        if (velocity > 20.0f)
         {
+            // Vector3 directionBuggy = GameObject.Find("Buggy").transform.forward;
+            
             GameObject numberPlate = GameObject.Find("NumberPlate");
             GameObject frontLamps = GameObject.Find("FrontLamps");
             Rigidbody plateRb = numberPlate.GetComponent<Rigidbody>();
             Rigidbody frontLampsRb = frontLamps.GetComponent<Rigidbody>();
+            
             if (plateRb == null)
             {
                 plateRb = numberPlate.AddComponent<Rigidbody>();
@@ -270,6 +309,98 @@ public class MeshDeformer : MonoBehaviour
             
             plateRb.useGravity = true;
             frontLampsRb.useGravity = true;
+
+            if (velocity > 80.0f)
+            {
+                GameObject rocketLauncherL = GameObject.Find("RocketLauncherL");
+                GameObject rocketLauncherR = GameObject.Find("RocketLauncherR");
+                Rigidbody rocketLRb = rocketLauncherL.GetComponent<Rigidbody>();
+                Rigidbody rocketRRb = rocketLauncherR.GetComponent<Rigidbody>();
+                
+                if (rocketLRb == null)
+                {
+                    rocketLRb = rocketLauncherL.AddComponent<Rigidbody>();
+                    rocketLauncherL.AddComponent<BoxCollider>();
+                }
+            
+                if (rocketRRb == null)
+                {
+                    rocketRRb = rocketLauncherR.AddComponent<Rigidbody>();
+                    rocketLauncherR.AddComponent<BoxCollider>();
+                }
+                
+                rocketLRb.useGravity = true;
+                rocketRRb.useGravity = true;
+
+                //Todo set front wheels in a slight angle (ca. 10-15 degree)
+                // var wheelFl = GameObject.Find("WheelFL");
+                // var testCol = Quaternion.Euler(0, 0, 90);
+                // var testWheel = Quaternion.Euler(0, 90, 0);
+                // var testR = _carScript.wheelColliderFL.transform.rotation;
+                // var testRotWheel = wheelFl.transform.rotation;
+                // testR *= testCol;
+                // testRotWheel *= testWheel;
+                // _carScript.wheelColliderFL.transform.rotation = testR;
+                // wheelFl.transform.rotation = testRotWheel;
+            }
+
+            if (velocity > 130.0f)
+            {
+                GameObject frontFrame = GameObject.Find("FrontChassisFrame");
+                GameObject wheelFl = GameObject.Find("WheelFL");
+                GameObject wheelFr = GameObject.Find("WheelFR");
+                Rigidbody frontFrameRb = frontFrame.GetComponent<Rigidbody>();
+                Rigidbody wheelFlRb = wheelFl.GetComponent<Rigidbody>();
+                Rigidbody wheelFrRb = wheelFr.GetComponent<Rigidbody>();
+                
+                if (frontFrameRb == null)
+                {
+                    frontFrameRb = frontFrame.AddComponent<Rigidbody>();
+                    frontFrame.AddComponent<BoxCollider>();
+                }
+                
+                if (wheelFlRb == null)
+                {
+                    wheelFlRb = wheelFl.AddComponent<Rigidbody>();
+                }
+                
+                if (wheelFrRb == null)
+                {
+                    wheelFrRb = wheelFr.AddComponent<Rigidbody>();
+                }
+            
+                frontFrameRb.useGravity = true;
+                wheelFlRb.useGravity = true;
+                wheelFrRb.useGravity = true;
+
+                _carScript.wheelColliderFL.enabled = false;
+                _carScript.wheelColliderFR.enabled = false;
+                _carScript.StopFmodEngineSound();
+            }
+            
+            // DeformFrontChassisFrame(localPointFrontFrame, force);
+
+        }
+    }
+
+    private Vector3 AddTwoVector(Vector3 vectorDirOne, Vector3 vectorDirTwo)
+    {
+        return (vectorDirOne + vectorDirTwo).normalized;
+    }
+    
+    //TODO deform front chassis frame according of force of initial impact...
+    private void DeformFrontChassisFrame(Vector3 localFrontFramePoint, float force)
+    {
+        // var testPoint = transformFrame.InverseTransformPoint(transformFrame.localPosition);
+        // var testPoint2 = _frontChassisFrameTransform.localPosition;
+        Vector3 directionOne = (_frontChassisFrameTransform.right + -_frontChassisFrameTransform.up).normalized;
+        var forceDirection = localFrontFramePoint * force;
+        // Vector3 directionTwo = (-transformFrame.right + transformFrame.forward).normalized;
+        
+        for (int i = 0; i < _displacedFrameVertices.Length; i++)
+        {
+            float distance = Vector3.Distance(_displacedFrameVertices[i], localFrontFramePoint);
+            _vertexFrameVelocities[i] += directionOne * force * 0.1f;
         }
     }
     
