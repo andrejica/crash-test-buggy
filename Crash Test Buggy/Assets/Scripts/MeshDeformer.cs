@@ -21,7 +21,6 @@ public class MeshDeformer : MonoBehaviour
     // Percentage of kinetic energy absorbed by de car
     private const float EnergyAbsorptionPercentage = 0.7f;
     private const float ForceOffset = 0.1f;
-    // private const float DeformationThreshold = 10.0f;
     
     public float deformationRadius = 1.0f;
     public float maxDeformation = 0.1f;
@@ -35,10 +34,11 @@ public class MeshDeformer : MonoBehaviour
         buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
         frontChassisFrameTransform = GameObject.Find("FrontChassisFrame").GetComponent<Transform>();
         
-        //Mesh position always at origin
+        //Mesh position always at origin (Information for later)
         //https://forum.unity.com/threads/mesh-read-write-enable-checkbox-missing.1286540/
         //https://discussions.unity.com/t/mesh-vertices-position-not-correct/32537
         //https://stackoverflow.com/questions/49104794/modify-vertices-at-runtime
+        
         //Get Mesh of buggy chassis game object
         _deformedMesh = GameObject.Find("buggy").GetComponent<MeshFilter>().mesh;
         _originalVertices = _deformedMesh.vertices;
@@ -51,7 +51,7 @@ public class MeshDeformer : MonoBehaviour
         
         _vertexVelocities = new Vector3[_originalVertices.Length];
         
-        //Get Mesh of front chassis frame game object
+        //Get Mesh of front chassis frame game object (maybe not needed now...)
         _deformedFrontFrameMesh = GameObject.Find("FrontChassisFrame").GetComponent<MeshFilter>().mesh;
         _originalFrameVertices = _deformedFrontFrameMesh.vertices;
         _displacedFrameVertices = new Vector3[_originalFrameVertices.Length];
@@ -62,7 +62,6 @@ public class MeshDeformer : MonoBehaviour
         }
 
         _vertexFrameVelocities = new Vector3[_originalFrameVertices.Length];
-
     }
 
     // Update is called once per frame
@@ -70,6 +69,7 @@ public class MeshDeformer : MonoBehaviour
     {
         if (!buggyChassisTransform)
         {
+            //If buggy is respawned try to assign buggy-Transform from new buggy
             buggyChassisTransform = GameObject.Find("buggy").GetComponent<Transform>();
         }
         
@@ -111,9 +111,11 @@ public class MeshDeformer : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
+        //Get all contact points from crash and calculate the center vector of contact to use
         var contactPoints = other.contacts.Select(cPoint => cPoint.point).ToArray();
         Vector3 contactCenterPoint = GetCenterOfVectors(contactPoints);
-        //Place the point a bit further away from initial point
+        
+        //Place the point a bit further in front of the buggy from initial point to be sure for calculations.
         Vector3 collisionPoint = contactCenterPoint + contactCenterPoint.normalized * ForceOffset;
         Vector3 localCollisionPoint = buggyChassisTransform.InverseTransformPoint(collisionPoint);
         
@@ -147,7 +149,7 @@ public class MeshDeformer : MonoBehaviour
     }
     
     /// <summary>
-    /// Add deforming force of a given mesh in a spherical form from given collision point and direction force.
+    /// Add deforming force of a given mesh in a spherical form from given collision point and force magnitude.
     /// Save calculated velocity in variable "_vertexVelocity" for later use.
     /// Altered version of this tutorial: https://catlikecoding.com/unity/tutorials/mesh-deformation/
     /// </summary>
@@ -156,6 +158,7 @@ public class MeshDeformer : MonoBehaviour
     private void AddDeformingForce (Vector3 collisionPoint, float absorbedKineticForce)
     {
         var velocityInRadius = new List<Vector3>();
+        
         //Add force to vertex
         for (int i = 0; i < _displacedVertices.Length; i++)
         {
@@ -179,8 +182,8 @@ public class MeshDeformer : MonoBehaviour
     }
 
     /// <summary>
-    /// Add deforming force of a given mesh in an elliptical form from given collision point, direction force
-    /// and inverse collision direction normal vector.
+    /// Add deforming force of a given mesh in an elliptical form from given collision point, force magnitude
+    /// and collision normal vector from the wall to buggy direction.
     /// Save calculated velocity in variable "_vertexVelocity" for later use.
     /// </summary>
     /// <param name="collisionPoint"></param>
@@ -189,6 +192,7 @@ public class MeshDeformer : MonoBehaviour
     private void AddEllipticDeformingForce(Vector3 collisionPoint, float absorbedKineticForce, Vector3 collisionDir)
     {
         var velocityInRadius = new List<Vector3>();
+        
         //Add force to vertex
         for (int i = 0; i < _displacedVertices.Length; i++)
         {
@@ -242,6 +246,11 @@ public class MeshDeformer : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Reset current buggy on designated distance according to pressed key
+    /// N-Key: 70m from wall
+    /// M-Key: 160m from wall
+    /// </summary>
     private void ResetDistance()
     {
         if (Input.GetKeyDown(KeyCode.N))
@@ -293,12 +302,13 @@ public class MeshDeformer : MonoBehaviour
     {
         isFrontFrameChange = true;
         Vector3 averageVertexVelocity = GetCenterOfVectors(velocities);
+        
+        //Should be direct average velocity (meter/seconds)
         float velocity = averageVertexVelocity.magnitude;
         
+        //TODO maybe use currentSpeed value to determine fall off speed for buggy parts...
         if (velocity > 20.0f)
         {
-            // Vector3 directionBuggy = GameObject.Find("Buggy").transform.forward;
-            
             GameObject numberPlate = GameObject.Find("NumberPlate");
             GameObject frontLamps = GameObject.Find("FrontLamps");
             Rigidbody plateRb = numberPlate.GetComponent<Rigidbody>();
@@ -341,7 +351,7 @@ public class MeshDeformer : MonoBehaviour
                 rocketLRb.useGravity = true;
                 rocketRRb.useGravity = true;
 
-                //Todo set front wheels in a slight angle (ca. 10-15 degree)
+                //TODO set front wheels in a slight angle (ca. 10-15 degree) because of crash force
                 // var wheelFl = GameObject.Find("WheelFL");
                 // var testCol = Quaternion.Euler(0, 0, 90);
                 // var testWheel = Quaternion.Euler(0, 90, 0);

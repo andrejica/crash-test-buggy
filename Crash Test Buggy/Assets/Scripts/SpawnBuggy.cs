@@ -1,8 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using TMPro;
 using UnityEngine;
 
 public class SpawnBuggy : MonoBehaviour
@@ -10,10 +5,10 @@ public class SpawnBuggy : MonoBehaviour
     public GameObject buggyCrashTest;
     public GameObject buggyCrashTestPrefab;
     public GameObject mainCamera;
-
-    // private bool _oldBuggyDestroyed;
+    
     private bool _waitForNewSpawn;
     private CarBehaviour _oldCarBehaviour;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -24,10 +19,10 @@ public class SpawnBuggy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        RemoveBuggy();
+        RespawnBuggy();
     }
     
-    private void RemoveBuggy()
+    private void RespawnBuggy()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
@@ -51,28 +46,6 @@ public class SpawnBuggy : MonoBehaviour
             followScript.target = buggyCrashTest.transform;
             MenuScene1Behaviour menuBehaviour = mainCamera.GetComponent<MenuScene1Behaviour>();
             menuBehaviour.buggy = buggyCrashTest;
-        }
-    }
-
-    private void SpawnNewBuggy()
-    {
-        if (_waitForNewSpawn)
-        {
-            Instantiate(buggyCrashTest, new Vector3(150, 0.5f, 100), Quaternion.identity);
-
-            GameObject spawnedBuggy = GameObject.Find("Buggy_Crash_Test");
-            GameObject mainCamera = GameObject.Find("Main Camera");
-            SmoothFollow followScript = mainCamera.GetComponent<SmoothFollow>();
-            followScript.target = spawnedBuggy.transform;
-            
-            spawnedBuggy.name = "Buggy";
-            
-            // _oldBuggyDestroyed = false;
-            _waitForNewSpawn = false;
-        }
-        else
-        {
-            _waitForNewSpawn = true;
         }
     }
 }
