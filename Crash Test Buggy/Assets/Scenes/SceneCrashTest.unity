@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -292,8 +292,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 160, y: -85.00002}
-  m_SizeDelta: {x: 310, y: 160}
+  m_AnchoredPosition: {x: 160, y: -111.155075}
+  m_SizeDelta: {x: 310, y: 212.3101}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &178510456
 MonoBehaviour:
@@ -1665,8 +1665,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.00000047684, y: 0.000022292}
-  m_SizeDelta: {x: 289.3663, y: 150.537}
+  m_AnchoredPosition: {x: 0, y: 0.0000019073}
+  m_SizeDelta: {x: 289.3663, y: 191.8985}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &944016414
 MonoBehaviour:
@@ -1694,15 +1694,20 @@ MonoBehaviour:
 
     T - Rotate camera 180 degree
 
-    R
-    - Repair Buggy chassis
+    F
+    - Front view toggle
 
-    Spacebar - Completely reset Buggy
+    K - First-Person-View toggle
 
-    N - Place
-    Buggy 70m away
+    R - Repair Buggy chassis
 
-    M - Place Buggy 160m away'
+    Spacebar
+    - Completely reset Buggy
+
+    N - Place Buggy 70m away
+
+    M - Place Buggy 160m
+    away'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -2521,6 +2526,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buggyCrashTest: {fileID: 0}
   buggyCrashTestPrefab: {fileID: 9056566655686210590, guid: 212828ccaa58d5d48b9f4d4c2889d10d, type: 3}
+  mainCamera: {fileID: 265422473}
 --- !u!1 &1532057459
 GameObject:
   m_ObjectHideFlags: 0
